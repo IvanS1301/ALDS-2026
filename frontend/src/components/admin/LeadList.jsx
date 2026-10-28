@@ -1,0 +1,461 @@
+import React, { useState } from 'react';
+
+/** --- MATERIAL UI --- */
+import { Box, IconButton, Modal, CircularProgress, Button, Snackbar, Typography, Paper } from "@mui/material";
+import { DataGrid } from "@mui/x-data-grid";
+import { Delete, Visibility } from '@mui/icons-material';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import ArchiveIcon from '@mui/icons-material/Archive';
+
+/** --- IMPORT CONTEXT --- */
+import { useLeadsContext } from "../../hooks/useLeadsContext";
+import { useAuthContext } from "../../hooks/useAuthContext";
+
+/** --- IMPORT TIME AND DATE FORMAT --- */
+import moment from 'moment';
+
+/** --- FOR MODAL --- */
+import AssignPage from '../../pages/admin/AssignPage';
+import ReadLead from '../../pages/admin/ReadLead';
+
+/** --- IMPORT CHART --- */
+import CustomToolbar from '../Chart/CustomToolbar';
+
+const LeadList = ({ tlLeads, userlgs, onLeadUpdate }) => {
+  const { dispatch } = useLeadsContext();
+  const { userLG } = useAuthContext();
+  const [selectedRows, setSelectedRows] = useState([]);
+  const [openAssignModal, setOpenAssignModal] = useState(false);
+  const [selectedLeadId, setSelectedLeadId] = useState(null);
+  const [openViewModal, setOpenViewModal] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
+
+  /** --- FOR DELETE BUTTON --- */
+  const [loadingDelete, setLoadingDelete] = useState(false); // State for delete loading
+  const [errorDelete, setErrorDelete] = useState(null); // State for delete error
+  const [showConfirmation, setShowConfirmation] = useState(false); // State for showing delete confirmation dialog
+  const [snackbarOpen, setSnackbarOpen] = useState(false); // State for Snackbar open
+  const [snackbarMessage, setSnackbarMessage] = useState(""); // State for Snackbar message
+
+  const userIdToNameMap = userlgs.reduce((acc, user) => {
+    acc[user._id] = user.name;
+    return acc;
+  }, {});
+
+  const handleClick = async (leadId) => {
+    if (!userLG) {
+      return;
+    }
+    setSelectedLeadId(leadId);
+    setShowConfirmation(true);
+  };
+
+  const handleOpenAssignModal = (leadId) => {
+    setSelectedLeadId(leadId);
+    setOpenAssignModal(true);
+  };
+
+  const handleCloseAssignModal = () => {
+    setOpenAssignModal(false);
+    setSelectedLeadId(null);
+  };
+
+  const handleDeleteConfirmation = async () => {
+    try {
+      setLoadingDelete(true); // Start delete loading
+      const response = await fetch(`http://localhost:4000/api/leads/${selectedLeadId}`, {
+        method: "DELETE",
+        headers: {
+          'Authorization': `Bearer ${userLG.token}`
+        }
+      });
+      const json = await response.json();
+
+      if (response.ok) {
+        dispatch({ type: "DELETE_TL_LEAD", payload: json });
+        setSnackbarMessage("Lead Deleted Successfully!");
+        setSnackbarOpen(true);
+        onLeadUpdate();
+      }
+    } catch (error) {
+      setErrorDelete('Error deleting lead.'); // Set delete error
+      console.error('Error deleting lead:', error);
+    } finally {
+      setLoadingDelete(false); // Stop delete loading
+      setShowConfirmation(false); // Close confirmation dialog
+    }
+  };
+
+  const handleCloseConfirmation = () => {
+    setShowConfirmation(false); // Close confirmation dialog
+  };
+
+  const handleSnackbarClose = () => {
+    setSnackbarOpen(false);
+  };
+
+  const handleOpenViewModal = (leadId) => {
+    setSelectedLeadId(leadId);
+    setOpenViewModal(true);
+  };
+
+  const handleCloseViewModal = () => {
+    setOpenViewModal(false);
+    setSelectedLeadId(null);
+  };
+
+  const iconButtonStyle = { color: "#111827" };
+
+  // Custom rendering function for status
+  const renderStatusCell = (params) => {
+    const getStatusColor = (callDisposition) => {
+      switch (callDisposition) {
+        case 'Booked':
+          return { backgroundColor: '#0d9488', color: 'white' }; // bg-emerald-700
+        case 'Warm Lead':
+          return { backgroundColor: '#818cf8', color: 'white' }; // bg-rose-900
+        case 'Email':
+          return { backgroundColor: '#2563eb', color: 'white' }; // bg-cyan-800
+        default:
+          return { color: '#0c0a09' }; // Default color for other statuses
+      }
+    };
+
+    const statusStyle = getStatusColor(params.value);
+
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', height: '100%', marginRight: '12px', marginBottom: '16px' }}>
+        <div style={{ ...statusStyle, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '9999px', width: '160px', height: '28px' }}>
+          {params.value}
+        </div>
+      </div>
+    );
+  };
+
+  const columns = [
+    {
+      field: "_id",
+      headerName: "ID",
+      flex: 1,
+      minWidth: 100,
+      renderCell: (params) => params.value.slice(20, 26),
+    },
+    {
+      field: "name",
+      headerName: "Name",
+      flex: 1,
+      minWidth: 200,
+    },
+    {
+      field: "type",
+      headerName: "Type",
+      flex: 1,
+      minWidth: 160,
+    },
+    {
+      field: "emailaddress",
+      headerName: "Email",
+      flex: 1,
+      minWidth: 250,
+    },
+    {
+      field: "userLG_id",
+      headerName: "Lead By",
+      flex: 1,
+      minWidth: 160,
+      renderCell: (params) => userIdToNameMap[params.value] || params.value,
+    },
+    {
+      field: "createdAt",
+      headerName: "Lead Gen Date",
+      flex: 1,
+      minWidth: 180,
+      renderCell: (params) =>
+        moment(params.row.createdAt).format('MMM-D-YYYY'),
+    },
+    {
+      field: "callDisposition",
+      headerName: "Call Disposition",
+      flex: 1,
+      minWidth: 200,
+      renderCell: renderStatusCell,
+    },
+    {
+      field: "assignedTo",
+      headerName: "Assigned To",
+      flex: 1,
+      minWidth: 150,
+      renderCell: (params) => userIdToNameMap[params.value] || params.value,
+      cellClassName: "name-column--cell",
+    },
+    {
+      field: "Distributed",
+      headerName: "Distributed",
+      flex: 1,
+      minWidth: 150,
+      renderCell: (params) => {
+        const assignedTo = params.row.assignedTo;
+        return assignedTo ? moment(params.row.Distributed).startOf('minute').fromNow() : '';
+      }
+    },
+    {
+      field: "updatedAt",
+      headerName: "Updated At",
+      flex: 1,
+      minWidth: 150,
+      renderCell: (params) => {
+        const callDisposition = params.row.callDisposition;
+        return callDisposition ? moment(params.row.updatedAt).startOf('minute').fromNow() : '';
+      }
+    },
+    {
+      field: "actions",
+      headerName: "Actions",
+      flex: 1,
+      minWidth: 190,
+      renderCell: (params) => (
+        <Box>
+          <IconButton onClick={() => handleOpenViewModal(params.row._id)} style={iconButtonStyle}><Visibility /></IconButton>
+          <IconButton onClick={() => handleClick(params.row._id)} style={iconButtonStyle}><Delete /></IconButton>
+          <IconButton onClick={() => handleOpenAssignModal(params.row._id)} style={iconButtonStyle}><PersonAddAlt1Icon /></IconButton>
+        </Box>
+      )
+    },
+  ];
+
+  /** --- HEADER SUBTITLE FORMAT --- */
+  const formattedDate = moment(tlLeads.updatedAt).format('MMMM Do YYYY, h:mm:ss a');
+
+  const filteredLeads = showArchived
+    ? tlLeads.filter(lead => lead.callDisposition === 'Do Not Call')
+    : tlLeads.filter(lead => lead.callDisposition !== 'Do Not Call');
+
+  return (
+    <Box m="20px">
+      <Box mb="20px">
+        <Typography
+          variant="h4"
+          color="#111827"
+          fontWeight="bold"
+          sx={{ m: "0 0 5px 0", mt: "25px" }}
+        >
+          {showArchived ? "ARCHIVED LEADS" : "ASSIGNED LEADS"}
+        </Typography>
+        <Typography variant="h5" color="#111827" marginBottom="30px">
+          {`as of ${formattedDate}`}
+        </Typography>
+        <Button
+          variant="contained"
+          onClick={() => setShowArchived(!showArchived)}
+          sx={{
+            mt: '3px',
+            padding: '10px 20px',
+            fontSize: '15px',
+            backgroundColor: '#3e4396',
+            '&:hover': {
+              backgroundColor: 'hsl(261deg 80% 48%)',
+              color: 'hsl(0, 0%, 100%)',
+            }
+          }}
+        >
+          <ArchiveIcon sx={{ mr: "10px" }} />
+          {showArchived ? "Assigned Leads" : "Archived Leads"}
+        </Button>
+      </Box>
+
+      <Box
+        m="40px 0 0 0"
+        height="69vh"
+        sx={{
+          "& .MuiDataGrid-root": {
+            border: "none",
+          },
+          "& .MuiDataGrid-cell": {
+            borderBottom: "none",
+            color: "#111827",
+            borderTop: `1px solid #525252 !important`,
+            fontWeight: "400"
+          },
+          "& .name-column--cell": {
+            color: "#1d4ed8",
+          },
+          "& .MuiDataGrid-columnHeader": {
+            backgroundColor: "#111827",
+            borderBottom: "none",
+            color: "#e0e0e0",
+            fontSize: "18px"
+          },
+          "& .MuiDataGrid-sortIcon": {
+            color: "#ffffff !important", // Change sort icon color to white
+          },
+          "& .MuiDataGrid-virtualScroller": {
+            backgroundColor: "#d1d5db",
+            fontSize: "17px",
+          },
+          "& .MuiDataGrid-headerContainer": {
+            borderTop: "none",
+          },
+          "& .MuiDataGrid-footerContainer": {
+            borderTop: "none",
+            backgroundColor: "#111827",
+            color: "#ffffff",
+          },
+          "& .MuiTablePagination-root": {
+            color: "#ffffff !important", // Ensure the pagination text is white
+          },
+          "& .MuiTablePagination-actions .MuiButtonBase-root": {
+            color: "#ffffff !important", // Ensure the pagination buttons are white
+          },
+          "& .MuiCheckbox-root": {
+            color: `#111827 !important`,
+          },
+          "& .MuiDataGrid-toolbarContainer .MuiButton-text": {
+            color: `#e0e0e0 !important`,
+            fontWeight: "500"
+          },
+        }}
+      >
+        <DataGrid
+          rows={filteredLeads}
+          columns={columns}
+          initialState={{
+            pagination: {
+              paginationModel: { pageSize: 25, page: 0 },
+            },
+          }}
+          checkboxSelection
+          onSelectionModelChange={(newSelection) => {
+            setSelectedRows(newSelection);
+          }}
+          selectionModel={selectedRows}
+          slots={{
+            toolbar: CustomToolbar,
+          }}
+          getRowId={row => row._id}
+        />
+      </Box>
+
+      <Modal
+        open={openAssignModal}
+        onClose={handleCloseAssignModal}
+        className="bounce-in-modal"
+        aria-labelledby="assign-lead-modal-title"
+        aria-describedby="assign-lead-modal-description"
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 400,
+            bgcolor: 'background.paper',
+            border: '2px solid #000',
+            boxShadow: 24,
+            p: 4,
+          }}
+        >
+          {selectedLeadId && <AssignPage leadId={selectedLeadId} onLeadUpdate={onLeadUpdate} />}
+        </Box>
+      </Modal>
+
+      <Modal
+        open={loadingDelete}
+        onClose={() => setLoadingDelete(false)}
+        aria-labelledby="delete-lead-modal-title"
+        aria-describedby="delete-lead-modal-description"
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 400,
+            bgcolor: 'background.paper',
+            border: '2px solid #000',
+            boxShadow: 24,
+            p: 4,
+            textAlign: 'center',
+          }}
+        >
+          {loadingDelete ? (
+            <CircularProgress /> // Show CircularProgress while deleting
+          ) : (
+              <div>{errorDelete || 'Lead Deleted Successfully!'}</div> // Show error or success message
+            )}
+        </Box>
+      </Modal>
+
+      <Modal
+        open={showConfirmation}
+        onClose={handleCloseConfirmation}
+        aria-labelledby="delete-confirmation-modal-title"
+        aria-describedby="delete-confirmation-modal-description"
+        className="bounce-in-modal"
+        sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      >
+        <Paper elevation={5} sx={{ padding: '40px', borderRadius: '16px', maxWidth: '600px', width: '90%', textAlign: 'center' }}>
+          <WarningAmberIcon sx={{ fontSize: '70px', color: 'orange', mb: '30px' }} />
+          <Typography variant="h5" sx={{ mb: '20px', fontSize: '24px' }}>
+            Are you sure you want to delete this lead?
+          </Typography>
+          <Box display="flex" justifyContent="center" mt="35px" gap="20px">
+            <Button
+              onClick={handleCloseConfirmation}
+              sx={{ backgroundColor: '#9e9e9e', color: '#fff', '&:hover': { backgroundColor: '#757575' }, padding: '12px 24px', fontSize: '16px' }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleDeleteConfirmation}
+              sx={{ backgroundColor: '#f44336', color: '#fff', '&:hover': { backgroundColor: '#d32f2f' }, padding: '12px 24px', fontSize: '16px' }}
+            >
+              Confirm
+            </Button>
+          </Box>
+        </Paper>
+      </Modal>
+
+      <Modal
+        open={openViewModal}
+        onClose={handleCloseViewModal}
+        className="bounce-in-modal"
+        aria-labelledby="view-lead-modal-title"
+        aria-describedby="view-lead-modal-description"
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '80%',
+            maxHeight: '80%',
+            overflow: 'auto',
+
+
+          }}
+        >
+          {selectedLeadId && <ReadLead leadId={selectedLeadId} />}
+        </Box>
+      </Modal>
+
+      <Snackbar
+        anchorOrigin={{
+          vertical: 'top',
+          horizontal: 'center',
+        }}
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        message={snackbarMessage}
+        action={<CheckCircleIcon sx={{ color: '#94e2cd' }} />}
+      />
+    </Box>
+  );
+};
+
+export default LeadList;
