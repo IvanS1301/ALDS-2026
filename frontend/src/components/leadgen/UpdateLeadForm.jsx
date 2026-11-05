@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { URL } from "../../utils/URL";
 
 /** --- MATERIAL UI --- */
 import { Box, Button, TextField, Select, MenuItem, FormControl, InputLabel, CircularProgress, Modal } from '@mui/material';
@@ -54,7 +55,7 @@ const UpdateLeadForm = ({ leadId, onLeadUpdate }) => {
         setLoading(true); // Start loading
 
         // Send the updated lead data to the backend for updating
-        const response = await fetch(`http://localhost:4000/api/leads/${leadId}`, {
+        const response = await fetch(`${URL}/api/leads/${leadId}`, {
             method: 'PATCH',
             body: JSON.stringify(leadData),
             headers: {
@@ -120,12 +121,12 @@ const UpdateLeadForm = ({ leadId, onLeadUpdate }) => {
                         onChange={handleChange}
                         label="Type"
                         MenuProps={{
-                            PaperProps: {
-                                style: {
-                                    maxHeight: 240, // Adjust the maximum height
-                                    width: 250 // Adjust the width
-                                }
+                          PaperProps: {
+                            style: {
+                              maxHeight: 240, // Adjust the maximum height
+                              width: 250 // Adjust the width
                             }
+                          }
                         }}
                     >
                         <MenuItem value=""><em>Choose One</em></MenuItem>
@@ -192,8 +193,8 @@ const UpdateLeadForm = ({ leadId, onLeadUpdate }) => {
                     name="emailaddress"
                     value={leadData.emailaddress}
                     onChange={handleChange}
-                    type="email"
                     margin="normal"
+                    type="email"
                 />
                 <Box mt={2}>
                     <Button variant="contained" type="submit" fullWidth sx={{ backgroundColor: '#3e4396' }}>
