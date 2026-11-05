@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { URL } from "../../utils/URL";
 
 /** --- MATERIAL UI --- */
 import { Box, IconButton, Modal, CircularProgress, Button, Snackbar, Typography, Paper } from "@mui/material";
@@ -65,7 +66,7 @@ const LeadList = ({ tlLeads, userlgs, onLeadUpdate }) => {
   const handleDeleteConfirmation = async () => {
     try {
       setLoadingDelete(true); // Start delete loading
-      const response = await fetch(`http://localhost:4000/api/leads/${selectedLeadId}`, {
+      const response = await fetch(`${URL}/api/leads/${selectedLeadId}`, {
         method: "DELETE",
         headers: {
           'Authorization': `Bearer ${userLG.token}`
