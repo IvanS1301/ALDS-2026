@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { URL } from "../../utils/URL";
 
 /** --- COMPONENTS --- */
 import AdminSidebar from '../../components/admin/AdminSidebar';
@@ -30,7 +31,7 @@ const AdminDashboard = () => {
 
     const fetchInventoryData = useCallback(async () => {
         try {
-            const inventoryRes = await fetch(`http://localhost:4000/api/inventories/inventory`, {
+            const inventoryRes = await fetch(`${URL}/api/inventories/inventory`, {
                 headers: { 'Authorization': `Bearer ${userLG.token}` },
             });
 
@@ -49,7 +50,7 @@ const AdminDashboard = () => {
 
     const fetchFilteredInventoryData = useCallback(async (period) => {
         try {
-            const inventoryRes = await fetch(`http://localhost:4000/api/inventories/inventory?range=${period}`, {
+            const inventoryRes = await fetch(`${URL}/api/inventories/inventory?range=${period}`, {
                 headers: { 'Authorization': `Bearer ${userLG.token}` },
             });
 
@@ -67,27 +68,31 @@ const AdminDashboard = () => {
     }, [dispatch, userLG]);
 
     const fetchDateRangeData = useCallback(async (startDate, endDate) => {
-        try {
-            const inventoryRes = await fetch(`http://localhost:4000/api/inventories/inventory?startDate=${startDate}&endDate=${endDate}`, {
-                headers: { 'Authorization': `Bearer ${userLG.token}` },
-            });
+    try {
+        // Format dates to ISO 8601 strings
+        const formattedStartDate = moment(startDate).toISOString();
+        const formattedEndDate = moment(endDate).toISOString();
 
-            const inventoryData = await inventoryRes.json();
+        const inventoryRes = await fetch(`${URL}/api/inventories/inventory?startDate=${formattedStartDate}&endDate=${formattedEndDate}`, {
+            headers: { 'Authorization': `Bearer ${userLG.token}` },
+        });
 
-            if (inventoryRes.ok) {
-                setInventory(inventoryData);
-                dispatch({ type: 'SET_INVENTORY', payload: inventoryData });
-            } else {
-                console.error('Failed to fetch inventory data', inventoryData);
-            }
-        } catch (error) {
-            console.error('Error fetching inventory data:', error);
+        const inventoryData = await inventoryRes.json();
+
+        if (inventoryRes.ok) {
+            setInventory(inventoryData);
+            dispatch({ type: 'SET_INVENTORY', payload: inventoryData });
+        } else {
+            console.error('Failed to fetch inventory data', inventoryData);
         }
-    }, [dispatch, userLG]);
+    } catch (error) {
+        console.error('Error fetching inventory data:', error);
+    }
+}, [dispatch, userLG]);
 
     const fetchBookingsData = useCallback(async () => {
         try {
-            const bookingsRes = await fetch(`http://localhost:4000/api/bookings/recent-bookings`, {
+            const bookingsRes = await fetch(`${URL}/api/bookings/recent-bookings`, {
                 headers: { 'Authorization': `Bearer ${userLG.token}` },
             });
 
