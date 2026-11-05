@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { URL } from "../../utils/URL";
 import { useUsersContext } from "../../hooks/useUsersContext";
 import { useAuthContext } from '../../hooks/useAuthContext';
 import { Box, Button, TextField, Select, MenuItem, FormControl, InputLabel, CircularProgress, Modal, Typography } from '@mui/material';
@@ -10,7 +11,6 @@ const UpdateUserTL = ({ userId, onUserUpdate }) => {
     const { userLG } = useAuthContext();
 
     const [userData, setUserData] = useState({
-        name: '',
         birthday: '',
         number: '',
         homeaddress: '',
@@ -24,7 +24,6 @@ const UpdateUserTL = ({ userId, onUserUpdate }) => {
         const userlg = userlgs.find(userlg => userlg._id === userId);
         if (userlg) {
             setUserData({
-                name: userlg.name || '',
                 birthday: userlg.birthday ? moment(userlg.birthday).format('YYYY-MM-DD') : '',
                 number: userlg.number || '',
                 homeaddress: userlg.homeaddress || '',
@@ -46,7 +45,7 @@ const UpdateUserTL = ({ userId, onUserUpdate }) => {
         setLoading(true);
 
         try {
-            const response = await fetch(`http://localhost:4000/api/userLG/${userId}`, {
+            const response = await fetch(`${URL}/api/userLG/${userId}`, {
                 method: 'PATCH',
                 body: JSON.stringify(userData),
                 headers: {
@@ -99,15 +98,6 @@ const UpdateUserTL = ({ userId, onUserUpdate }) => {
             }}
         >
             <div className="text-[#D22B2B] text-2xl mb-3 font-medium">Update Profile</div>
-            <TextField
-                fullWidth
-                label="Name"
-                name="name"
-                value={userData.name}
-                onChange={handleChange}
-                margin="normal"
-                required
-            />
             <TextField
                 fullWidth
                 label="Birthday"
