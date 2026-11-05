@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { URL } from "../../utils/URL";
 import { useParams, useNavigate } from 'react-router-dom';
 
 /** --- MATERIAL UI --- */
@@ -32,7 +33,7 @@ const ResetPassword = () => {
         setError(null);
 
         try {
-            const response = await fetch(`http://localhost:4000/api/password/reset-password`, {
+            const response = await fetch(`${URL}/api/password/reset-password`, {
                 method: 'POST',
                 body: JSON.stringify({ id, password, token: code }),
                 headers: {
