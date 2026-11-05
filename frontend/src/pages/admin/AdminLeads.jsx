@@ -1,29 +1,31 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { URL } from "../../utils/URL";
 
 /** --- MATERIAL UI --- */
 import { CircularProgress } from "@mui/material";
 
 /** --- COMPONENTS --- */
-import LeadList from "../../components/admin/LeadList";
-import AdminNavbar from '../../components/admin/AdminNavbar';
-import AdminSidebar from "../../components/admin/AdminSidebar";
+import LeadList from "../../components/admin/LeadList"
+import AdminNavbar from '../../components/admin/AdminNavbar'
+import AdminSidebar from "../../components/admin/AdminSidebar"
 
 /** --- CONTEXT --- */
-import { useLeadsContext } from "../../hooks/useLeadsContext";
-import { useUsersContext } from "../../hooks/useUsersContext";
-import { useAuthContext } from "../../hooks/useAuthContext";
+import { useLeadsContext } from "../../hooks/useLeadsContext"
+import { useUsersContext } from "../../hooks/useUsersContext"
+import { useAuthContext } from "../../hooks/useAuthContext"
 
 const AdminLeads = () => {
   const { tlLeads, dispatch } = useLeadsContext();
   const { userlgs, dispatch: dispatchUsers } = useUsersContext();
   const { userLG } = useAuthContext();
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [filteredLeads, setFilteredLeads] = useState([]);
+  const [loading, setLoading] = useState(true); // Initialize loading state
+  const [filteredLeads, setFilteredLeads] = useState([]); // State to hold filtered leads
+
 
   const fetchLeads = useCallback(async () => {
     try {
-      const response = await fetch('http://localhost:4000/api/leads/tl', {
+      const response = await fetch(`${URL}/api/leads/tl`, {
         headers: { 'Authorization': `Bearer ${userLG.token}` },
       });
       const json = await response.json();
@@ -43,6 +45,7 @@ const AdminLeads = () => {
     fetchLeads();
   }, [fetchLeads]);
 
+  // Function to handle lead update
   const handleLeadUpdate = useCallback(() => {
     setLoading(true); // Set loading state to true to indicate data fetching
     // Perform any necessary actions to update leads or refetch data
@@ -51,7 +54,7 @@ const AdminLeads = () => {
 
   useEffect(() => {
     const fetchUsers = async () => {
-      const response = await fetch('http://localhost:4000/api/userLG');
+      const response = await fetch(`${URL}/api/userLG`);
       const json = await response.json();
 
       if (response.ok) {
