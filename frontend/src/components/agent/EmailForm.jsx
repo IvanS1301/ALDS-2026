@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { URL } from "../../utils/URL";
 
 /** --- MATERIAL UI --- */
 import { Box, Button, Typography, TextField, CircularProgress, Modal, Grid, MenuItem, Paper } from '@mui/material';
@@ -32,7 +33,7 @@ const EmailForm = ({ unassignedId, email, onLeadUpdate }) => {
     useEffect(() => {
         const fetchTemplates = async () => {
             try {
-                const response = await fetch('http://localhost:4000/api/templates', {
+                const response = await fetch(`${URL}/api/templates`, {
                     headers: { 'Authorization': `Bearer ${userLG.token}` },
                 });
                 const templates = await response.json();
@@ -93,7 +94,7 @@ const EmailForm = ({ unassignedId, email, onLeadUpdate }) => {
         }
 
         try {
-            const response = await fetch('http://localhost:4000/api/emails/', {
+            const response = await fetch(`${URL}/api/emails/`, {
                 method: 'POST',
                 body: JSON.stringify(emailData),
                 headers: {
@@ -136,7 +137,7 @@ const EmailForm = ({ unassignedId, email, onLeadUpdate }) => {
     const handleSaveTemplate = async () => {
         if (newTemplate.subject && newTemplate.text) {
             try {
-                const response = await fetch('http://localhost:4000/api/templates', {
+                const response = await fetch(`${URL}/api/templates`, {
                     method: 'POST',
                     body: JSON.stringify(newTemplate),
                     headers: {
