@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { URL } from "../../utils/URL";
 
 /** --- MATERIAL UI --- */
 import { Box, Button, IconButton, Badge, Menu, MenuItem, Typography, Avatar, Divider, Paper, Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
@@ -27,7 +28,7 @@ const AgentNavbar = ({ onSearch }) => {
     useEffect(() => {
         const fetchNotifications = async () => {
             try {
-                const response = await fetch('http://localhost:4000/api/notifications');
+                const response = await fetch(`${URL}/api/notifications`);
                 const data = await response.json();
                 setNotifications(data);
             } catch (error) {
@@ -54,7 +55,7 @@ const AgentNavbar = ({ onSearch }) => {
 
     const handleMarkAsRead = async (notification) => {
         try {
-            const response = await fetch(`http://localhost:4000/api/notifications/${notification._id}/agent`, {
+            const response = await fetch(`${URL}/api/notifications/${notification._id}/agent`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json'
