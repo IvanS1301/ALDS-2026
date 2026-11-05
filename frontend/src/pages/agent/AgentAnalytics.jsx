@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { URL } from "../../utils/URL";
 
 /** --- COMPONENTS --- */
 import AgentSidebar from '../../components/agent/AgentSidebar';
@@ -23,10 +24,10 @@ const AgentAnalytics = () => {
         const fetchData = async () => {
             try {
                 const [bookedUnitsRes, bookingsRes] = await Promise.all([
-                    fetch('http://localhost:4000/api/services/booked-units-performance', {
+                    fetch(`${URL}/api/services/booked-units-performance`, {
                         headers: { 'Authorization': `Bearer ${userLG.token}` },
                     }),
-                    fetch('http://localhost:4000/api/bookings/recent-bookings', {
+                    fetch(`${URL}/api/bookings/recent-bookings`, {
                         headers: { 'Authorization': `Bearer ${userLG.token}` },
                     })
                 ]);
@@ -71,7 +72,7 @@ const AgentAnalytics = () => {
                     ) : (
                             <div className="flex flex-col w-full items-center overflow-y-hidden mt-5">
                                 <div className="w-full">
-                                    <AgentAnalyticsTabs bookedUnits={userBookedUnits} recentBookings={recentBookings} />
+                                    <AgentAnalyticsTabs bookedUnits={userBookedUnits} recentBookings={recentBookings}/>
                                 </div>
                             </div>
                         )}
