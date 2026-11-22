@@ -49,9 +49,9 @@ const forgotPassword = async (req, res) => {
 
                     text: `You requested a password reset for your account.
 
-Your verification code is: ${resetToken}
+                    Your verification code is: ${resetToken}
 
-Please use this code within the next 30 minutes.`,
+                    Please use this code within the next 30 minutes.`,
 
                     html: `
                         <p>You requested a password reset for your account.</p>
