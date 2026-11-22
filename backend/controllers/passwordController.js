@@ -43,7 +43,7 @@ const forgotPassword = async (req, res) => {
                 },
 
                 body: JSON.stringify({
-                    from: process.env.EMAIL,
+                    from: process.env.RESEND_FROM_EMAIL,
                     to: [userLG.email],
                     subject: 'Password Reset',
 
