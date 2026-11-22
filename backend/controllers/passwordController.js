@@ -1,9 +1,12 @@
-require('dotenv').config()
-const UserLG = require('../models/userLGModel')
+require('dotenv').config();
+
+const UserLG = require('../models/userLGModel');
 const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 
+// =====================================================
+// FORGOT PASSWORD
+// =====================================================
 const forgotPassword = async (req, res) => {
     const { email } = req.body;
 
@@ -11,7 +14,7 @@ const forgotPassword = async (req, res) => {
     let resetToken;
 
     try {
-        // 1. Find the user
+        // 1. Find the user by email
         userLG = await UserLG.findOne({ email });
 
         if (!userLG) {
@@ -23,15 +26,16 @@ const forgotPassword = async (req, res) => {
         // 2. Generate a verification code
         resetToken = crypto.randomBytes(3).toString('hex');
 
+        // Token expires after 30 minutes
         const resetTokenExpiration = Date.now() + 1800000;
 
-        // 3. Save the code and expiration in MongoDB
+        // 3. Save the verification code in MongoDB
         userLG.resetPasswordToken = resetToken;
         userLG.resetPasswordExpires = resetTokenExpiration;
 
         await userLG.save();
 
-        // 4. Send the email through Resend's HTTPS API
+        // 4. Send the email using Resend's HTTPS API
         const response = await fetch(
             'https://api.resend.com/emails',
             {
@@ -43,54 +47,71 @@ const forgotPassword = async (req, res) => {
                 },
 
                 body: JSON.stringify({
-                    from: process.env.RESEND_FROM_EMAIL,
+                    from: process.env.EMAIL,
                     to: [userLG.email],
                     subject: 'Password Reset',
 
-                    text: `You requested a password reset for your account.
+                    text: `You are receiving this because you requested a password reset for your account.
 
-                    Your verification code is: ${resetToken}
-
-                    Please use this code within the next 30 minutes.`,
+Please use this verification code to reset your password within the next 30 minutes: ${resetToken}`,
 
                     html: `
-                        <p>You requested a password reset for your account.</p>
+                        <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+                            <h2>Password Reset</h2>
 
-                        <p>
-                            Please use this verification code within
-                            the next 30 minutes:
-                        </p>
+                            <p>
+                                You are receiving this because you requested
+                                a password reset for your account.
+                            </p>
 
-                        <h2>${resetToken}</h2>
+                            <p>
+                                Please use this verification code to reset
+                                your password within the next 30 minutes:
+                            </p>
+
+                            <h2 style="color: #3e4396; letter-spacing: 4px;">
+                                ${resetToken}
+                            </h2>
+
+                            <p>
+                                If you did not request a password reset,
+                                you can safely ignore this email.
+                            </p>
+                        </div>
                     `
                 })
             }
         );
 
-        // 5. Check whether Resend accepted the email
+        // 5. Read and check the response from Resend
         const responseData = await response.json();
 
         if (!response.ok) {
             console.error('Resend email error:', responseData);
 
-            throw new Error('Unable to send the password reset email.');
+            throw new Error(
+                'Unable to send the password reset email.'
+            );
         }
 
         // 6. Return success to the frontend
         return res.status(200).json({
-            message: 'Password reset email sent successfully.'
+            message: 'An email has been sent to ' +
+                userLG.email +
+                ' with further instructions.'
         });
 
     } catch (error) {
         console.error('Forgot password error:', error);
 
-        // 7. Remove the unused reset code if email sending fails
+        // 7. Clear the reset token if email sending fails
         if (userLG && resetToken) {
             try {
                 userLG.resetPasswordToken = undefined;
                 userLG.resetPasswordExpires = undefined;
 
                 await userLG.save();
+
             } catch (cleanupError) {
                 console.error(
                     'Failed to clear reset token:',
@@ -105,6 +126,56 @@ const forgotPassword = async (req, res) => {
     }
 };
 
+// =====================================================
+// RESET PASSWORD
+// =====================================================
+const resetPassword = async (req, res) => {
+    const { token, password } = req.body;
+
+    try {
+        // 1. Find the user using the verification code
+        // and check if the code has expired
+        const userLG = await UserLG.findOne({
+            resetPasswordToken: token,
+            resetPasswordExpires: { $gt: Date.now() },
+        });
+
+        if (!userLG) {
+            return res.status(400).json({
+                error: 'Password reset token is invalid or has expired.'
+            });
+        }
+
+        // 2. Hash the new password
+        const salt = await bcrypt.genSalt(10);
+        const hash = await bcrypt.hash(password, salt);
+
+        // 3. Update the password
+        userLG.password = hash;
+
+        // 4. Remove the used reset token
+        userLG.resetPasswordToken = undefined;
+        userLG.resetPasswordExpires = undefined;
+
+        await userLG.save();
+
+        // 5. Return success to the frontend
+        return res.status(200).json({
+            message: 'Password has been reset successfully.'
+        });
+
+    } catch (error) {
+        console.error('Reset password error:', error);
+
+        return res.status(500).json({
+            error: 'Unable to reset the password. Please try again later.'
+        });
+    }
+};
+
+// =====================================================
+// EXPORT CONTROLLER FUNCTIONS
+// =====================================================
 module.exports = {
     forgotPassword,
     resetPassword,
